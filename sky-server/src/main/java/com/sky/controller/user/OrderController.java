@@ -1,0 +1,71 @@
+package com.sky.controller.user;
+
+import com.sky.dto.OrdersPaymentDTO;
+import com.sky.dto.OrdersSubmitDTO;
+import com.sky.result.PageResult;
+import com.sky.result.Result;
+import com.sky.service.OrderService;
+import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+
+@RestController("userOrderController")
+@RequestMapping("/user/order")
+@Slf4j
+public class OrderController {
+    @Autowired
+    private OrderService orderService;
+    //用户下单
+    @PostMapping("/submit")
+    public Result<OrderSubmitVO> submit(@Valid @RequestBody OrdersSubmitDTO ordersSubmitDTO) {
+        OrderSubmitVO orderSubmitVO = orderService.submit(ordersSubmitDTO);
+        return Result.success(orderSubmitVO);
+    }
+    //订单支付
+    @PutMapping("/payment")
+    public Result<OrderPaymentVO> payment(@Valid @RequestBody OrdersPaymentDTO ordersPaymentDTO) throws Exception {
+        log.info("订单支付：{}", ordersPaymentDTO);
+        OrderPaymentVO orderPaymentVO = orderService.payment(ordersPaymentDTO);
+        log.info("生成预支付交易单：{}", orderPaymentVO);
+        //模拟支付：跳过微信下单，直接走支付成功逻辑
+        orderService.paySuccess(ordersPaymentDTO.getOrderNumber());
+        return Result.success(orderPaymentVO);
+    }
+
+    //历史订单
+    @GetMapping("/historyOrders")
+    public Result<PageResult> page(int page, int pageSize, Integer status) {
+        PageResult pageResult = orderService.pageQuery4User(page, pageSize, status);
+        return Result.success(pageResult);
+    }
+    //查询订单信息（某一单及其各种数据等, 涉OrdersVO的OrderDetailList）
+    @GetMapping("orderDetail/{id}")
+    public Result<OrderVO> getOrderDetail(@PathVariable Long id) {
+        OrderVO orderVO = orderService.getOrderDetailById(id);
+        return Result.success(orderVO);
+    }
+    //取消订单
+    @PutMapping("/cancel/{id}")
+    public Result userCancel(@PathVariable Long id) {
+        orderService.userCancel(id);
+        return Result.success();
+    }
+    //再来一单
+    @PostMapping("/repetition/{id}")
+    public Result repetition(@PathVariable Long id) {
+        orderService.repetition(id);
+        return Result.success();
+    }
+    //催单
+    @GetMapping("/reminder/{id}")
+    public Result remind(@PathVariable Long id) {
+        log.info("用户催单");
+         orderService.reminder(id);
+        return Result.success();
+    }
+}

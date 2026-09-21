@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.ShoppingCartMapper">
+    <insert id="insert">
+        insert into shopping_cart (user_id, dish_id, setmeal_id, dish_flavor, name, image, number, amount, create_time)
+        values (#{userId}, #{dishId}, #{setmealId}, #{dishFlavor}, #{name}, #{image}, #{number}, #{amount}, #{createTime})
+    </insert>
+
+    <select id="getById" resultType="com.sky.entity.ShoppingCart">
+        select * from shopping_cart
+        <where>
+        <if test="dishId != null">
+            and dish_id = #{dishId}
+        </if>
+        <if test="setmealId != null">
+            and setmeal_id = #{setmealId}
+        </if>
+        <if test="dishFlavor != null">
+            and dish_flavor = #{dishFlavor}
+        </if>
+        <if test="userId != null">
+            and user_id = #{userId}
+        </if>
+        </where>
+    </select>
+
+    <!-- 加入购物车：同一用户同一商品（菜品/套餐+口味）已存在时只累加份数。
+         依赖 uk_cart_user_item 唯一索引，点击并发时命中 ON DUPLICATE KEY UPDATE，不会插入重复行 -->
+    <insert id="insertOrIncrement">
+        insert into shopping_cart (user_id, dish_id, setmeal_id, dish_flavor, name, image, number, amount, create_time)
+        values (#{userId}, #{dishId}, #{setmealId}, #{dishFlavor}, #{name}, #{image}, #{number}, #{amount}, #{createTime})
+        as new
+        on duplicate key update number = shopping_cart.number + new.number
+    </insert>
+
+    <!-- 购物车中已不可售的商品名：菜品/套餐本身停售、所属分类被停用，或商品已被删除 -->
+    <select id="listNotSellableNames" resultType="java.lang.String">
+        select sc.name
+        from shopping_cart sc
+        left join dish d on sc.dish_id = d.id
+        left join setmeal sm on sc.setmeal_id = sm.id
+        left join category c on c.id = ifnull(d.category_id, sm.category_id)
+        where sc.user_id = #{userId}
+        and (
+            (sc.dish_id is not null
+                and (d.id is null or ifnull(d.status, 0) &lt;&gt; 1 or ifnull(c.status, 0) &lt;&gt; 1))
+            or
+            (sc.setmeal_id is not null
+                and (sm.id is null or ifnull(sm.status, 0) &lt;&gt; 1 or ifnull(c.status, 0) &lt;&gt; 1))
+        )
+    </select>
+</mapper>

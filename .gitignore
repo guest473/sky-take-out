@@ -1,0 +1,18 @@
+**/target/
+.idea
+*.iml
+*.class
+*Test.java
+**/test/
+**/application-dev.yml
+
+# 前端依赖与构建产物
+node_modules/
+**/node_modules/
+**/node-modules/
+**/dist/
+**/.hbuilderx/
+**/unpackage/
+
+# 微信开发者工具的本地个人配置
+**/project.private.config.json
